@@ -12,7 +12,7 @@ def setup_database():
 
     cursor = conn.cursor()
 
-    cursor.execute("CREATE TABLE accounts(username VARCHAR(40) PRIMARY KEY, pubkey_hex CHAR(64), salt CHAR(32))")
+    cursor.execute("CREATE TABLE accounts(username VARCHAR(40) PRIMARY KEY, pubkey_hex CHAR(64) UNIQUE, salt CHAR(32) UNIQUE)")
 
     cursor.close()
 

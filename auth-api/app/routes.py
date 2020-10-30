@@ -26,6 +26,7 @@ def verify_signature(public_key:str, signature:str, username:str):
         return False
     return True
 
+
 @app.route("/")
 def index():
     return {"endpoint": "auth-api"}
@@ -97,6 +98,7 @@ def get_challenge():
 
     return response
 
+
 @app.route("/authenticate", methods=["POST"])
 def authenticate():
     try:
@@ -125,7 +127,8 @@ def authenticate():
     except BadSignatureError:
         return {"result": "error", "http code": 401, "here": 2}, 401
 
-    expire_time = time.time() + 600
+    # make token valid for 1 hour
+    expire_time = time.time() + 60*60
     issued_at = time.time()
 
     new_jwt = jwt.JWT(
@@ -140,3 +143,18 @@ def authenticate():
     new_jwt.make_signed_token(jwt_signing_key)
 
     return {"auth_token": new_jwt.serialize(), "expires": expire_time, "issued_at": issued_at}
+
+
+@app.route("/check-auth")
+def check_auth():
+
+    header_data = request.headers.get("Authorization").split(" ")
+    bearer_token = header_data[1]
+
+    try:
+        auth_jwt = jwt.JWT()
+        auth_jwt.deserialize(bearer_token, jwt_signing_key)
+    except:
+        return {"result": "no"}
+    
+    return {"result": "yes"}

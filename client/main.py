@@ -5,6 +5,8 @@ from nacl.encoding import Base16Encoder
 from nacl import pwhash, secret, utils
 import requests
 
+bearer_token = ""
+
 def derive_keys(password, salt=None):
 
     kdf = pwhash.argon2i.kdf
@@ -73,16 +75,35 @@ def authenticate_account():
 
     response = r.json()
 
-    print(response)
+    if r.ok:
+        global bearer_token
+        bearer_token = response["auth_token"]
+        print("Authenticated Successfully")
+    else:
+        print("Failed Authentication")
+
+def check_auth():
+    headers = {
+        "Authorization": f"Bearer {bearer_token}"
+    }
+
+    response = requests.get("http://localhost:5000/check-auth", headers=headers)
+
+    print(response.json()["result"])
 
 
 def main():
-    action = input("Enter action: ")
 
-    if action == "register":
-        register_account()
-    elif action == "authenticate":
-        authenticate_account()
+    while True:
+        action = input("Enter action: ")
+        if action == "register":
+            register_account()
+        elif action == "authenticate":
+            authenticate_account()
+        elif action == "check":
+            check_auth()
+        elif action == "quit" or action == "exit":
+            exit()
 
 if __name__ == "__main__":
     main()
