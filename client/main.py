@@ -10,8 +10,8 @@ def derive_keys(password, salt=None):
     kdf = pwhash.argon2i.kdf
     if salt is None:
         salt = utils.random(pwhash.argon2i.SALTBYTES)
-    ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
-    mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
+    ops = pwhash.argon2i.OPSLIMIT_INTERACTIVE
+    mem = pwhash.argon2i.MEMLIMIT_INTERACTIVE
 
 
     seed = kdf(32, password.encode("utf-8"), salt, ops, mem)
@@ -26,7 +26,7 @@ def sign_username(sk:SigningKey, username:str):
     return signature.signature
 
 def sign_nonce(sk:SigningKey, nonce:str):
-    signature = sk.sign(nonce.encode("utf-8"), encoder=Base16Encoder)
+    signature = sk.sign(b16decode(nonce.encode("utf-8")))
     return signature.signature
 
 def register_account():
@@ -42,9 +42,8 @@ def register_account():
         "signature": b16encode(signature).decode("utf-8")
     }
 
-    print(f"public key = {pubkey.encode(encoder=Base16Encoder).decode('utf-8')}")
-
     requests.post("http://localhost:5000/register", json=json_data)
+
 
 def authenticate_account():
 
@@ -64,13 +63,11 @@ def authenticate_account():
     signature = sign_nonce(seckey, nonce)
 
     request_data = {
-        "signature": signature.decode("utf-8"),
+        "signature": b16encode(signature).decode("utf-8"),
         "nonce": nonce
     }
 
-    print(request_data)
-
-    print(f"public key = {pubkey.encode(encoder=Base16Encoder).decode('utf-8')}")
+    pubkey.verify(b16decode(nonce.encode("utf-8")), signature)
 
     r = requests.post("http://localhost:5000/authenticate", json=request_data)
 

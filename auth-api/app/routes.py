@@ -1,9 +1,10 @@
 from app import app, jwt_signing_key
 from flask import request
 
-import base64
 import sqlite3
 import time
+
+from base64 import b16encode, b16decode
 
 from nacl.signing import VerifyKey
 from nacl import utils
@@ -17,7 +18,7 @@ live_challenges = {}
 
 def verify_signature(public_key:str, signature:str, username:str):
     vk = VerifyKey(public_key.encode("utf-8"), encoder=Base16Encoder)
-    raw_signature = base64.b16decode(signature.encode("utf-8"))
+    raw_signature = b16decode(signature.encode("utf-8"))
     
     try:
         vk.verify(username.encode("utf-8"), raw_signature)
@@ -87,12 +88,12 @@ def get_challenge():
     nonce = utils.random(32)
 
     response = {
-        "nonce": base64.b16encode(nonce).decode("utf-8"),
+        "nonce": b16encode(nonce).decode("utf-8"),
         "salt": salt
     }
 
     global live_challenges
-    live_challenges[base64.b16encode(nonce).decode("utf-8")] = (username, pubkey_hex)
+    live_challenges[b16encode(nonce).decode("utf-8")] = (username, pubkey_hex)
 
     return response
 
@@ -118,11 +119,9 @@ def authenticate():
     # this forces clients to generate a new challenge for each auth attempt
     del live_challenges[nonce]
 
-    print(f"pubkey_hex = {pubkey_hex}")
-
     try:
-        vk = VerifyKey(pubkey_hex.encode("utf-8"), encoder=Base16Encoder)
-        vk.verify(smessage=base64.b16decode(nonce.encode("utf-8")), signature=base64.b16encode(signature.encode("utf-8")))
+        vk = VerifyKey(b16decode(pubkey_hex.encode("utf-8")))
+        vk.verify(smessage=b16decode(nonce.encode("utf-8")), signature=b16decode(signature.encode("utf-8")))
     except BadSignatureError:
         return {"result": "error", "http code": 401, "here": 2}, 401
 
