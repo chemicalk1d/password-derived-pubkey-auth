@@ -1,12 +1,30 @@
 import getpass
+import requests
+import hashlib
+
 from base64 import b16encode, b16decode
+
 from nacl.signing import SigningKey
 from nacl.public import SealedBox
 from nacl.encoding import Base16Encoder
 from nacl import pwhash, secret, utils
-import requests
+
 
 bearer_token = ""
+
+def evaluate_password(password):
+    hasher = hashlib.sha1()
+    hasher.update(password.encode("utf-8"))
+    hex_digest = hasher.hexdigest()
+
+    r = requests.get(f"https://api.pwnedpasswords.com/range/{hex_digest[:5]}")
+    data_lines = r.content.decode("utf-8").split("\r\n")
+    data_lines = set(map(lambda x: x.split(":")[0], data_lines))
+
+    if hex_digest.upper()[5:] in data_lines:
+        print("Password found in public password lists. Please pick a new password")
+        return False
+    return True
 
 def derive_keys(password, salt=None):
 
@@ -34,7 +52,12 @@ def sign_nonce(sk:SigningKey, nonce:str):
 
 def register_account():
     username = input("Enter username: ")
+    
     password = getpass.getpass("Enter password: ")
+    while not evaluate_password(password):
+        password = getpass.getpass("Enter password: ")
+
+
     pubkey, seckey, salt = derive_keys(password)
     signature = sign_username(seckey, username)
 
