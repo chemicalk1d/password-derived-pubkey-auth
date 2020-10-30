@@ -1,0 +1,3 @@
+flask
+jwcrypto
+pynacl
