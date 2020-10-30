@@ -7,6 +7,7 @@ import time
 from base64 import b16encode, b16decode
 
 from nacl.signing import VerifyKey
+from nacl.public import SealedBox
 from nacl import utils
 from nacl.encoding import Base16Encoder
 from nacl.exceptions import BadSignatureError
@@ -88,8 +89,13 @@ def get_challenge():
 
     nonce = utils.random(32)
 
+    pubkey = VerifyKey(b16decode(pubkey_hex.encode("utf-8")))
+    pubkey = pubkey.to_curve25519_public_key()
+    encrypted_nonce = SealedBox(pubkey).encrypt(nonce)
+
+    
     response = {
-        "nonce": b16encode(nonce).decode("utf-8"),
+        "encrypted_nonce": b16encode(encrypted_nonce).decode("utf-8"),
         "salt": salt
     }
 

@@ -1,6 +1,7 @@
 import getpass
 from base64 import b16encode, b16decode
 from nacl.signing import SigningKey
+from nacl.public import SealedBox
 from nacl.encoding import Base16Encoder
 from nacl import pwhash, secret, utils
 import requests
@@ -55,12 +56,16 @@ def authenticate_account():
 
     response = r.json()
 
-    nonce = response["nonce"]
+    encrypted_nonce = response["encrypted_nonce"]
     salt = response["salt"]
 
     password = getpass.getpass("Enter password: ")
 
     pubkey, seckey, _ = derive_keys(password, salt=b16decode(salt.encode("utf-8")))
+
+
+    nonce = SealedBox(seckey.to_curve25519_private_key()).decrypt(encrypted_nonce.encode("utf-8"), encoder=Base16Encoder)
+    nonce = b16encode(nonce).decode("utf-8")
 
     signature = sign_nonce(seckey, nonce)
 
